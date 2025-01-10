@@ -6,7 +6,7 @@ const { getUpcomingDeadlines, getSheetList, getLastDeadlines, getPostDetailByCod
 const moment = require('moment-timezone');
 const path = require('path');
 
-// Inisialisasi WhatsApp Client
+// Initiate
 const client = new Client({
     authStrategy: new LocalAuth({ dataPath: './sessions' }),
 });
@@ -16,10 +16,10 @@ client.on('qr', (qr) => {
     qrcode.generate(qr, { small: true });
 });
 
-// Path untuk menyimpan pengingat yang sudah dikirim
+// Path for sentReminders
 const remindersFilePath = path.join(__dirname, 'sentReminders.json');
 
-// Fungsi untuk membaca pengingat yang sudah dikirim dari file
+// Read last reminders
 function loadSentReminders() {
     if (fs.existsSync(remindersFilePath)) {
         return JSON.parse(fs.readFileSync(remindersFilePath, 'utf-8'));
@@ -27,7 +27,7 @@ function loadSentReminders() {
     return [];
 }
 
-// Fungsi untuk menyimpan pengingat yang sudah dikirim ke file
+// save reminders
 function saveSentReminders(reminders) {
     fs.writeFileSync(remindersFilePath, JSON.stringify(reminders, null, 2), 'utf-8');
 }
