@@ -1,6 +1,0 @@
-2025/01/10-14:43:54.478 1ca4 Reusing MANIFEST E:\Development\wa-bot\whatsapp-bot\sessions\session\Default\Local Storage\leveldb/MANIFEST-000001
-2025/01/10-14:43:54.480 1ca4 Recovering log #45
-2025/01/10-14:43:54.481 1ca4 Reusing old log E:\Development\wa-bot\whatsapp-bot\sessions\session\Default\Local Storage\leveldb/000045.log 
-2025/01/10-14:45:55.233 1ca4 Level-0 table #49: started
-2025/01/10-14:45:55.243 1ca4 Level-0 table #49: 10569 bytes OK
-2025/01/10-14:45:55.247 1ca4 Delete type=0 #45
