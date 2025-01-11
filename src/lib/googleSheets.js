@@ -52,7 +52,7 @@ async function getUpcomingDeadlines(sheetName) {
     const rows = await getContentPlanningData(sheetName);
 
     // Skip header (baris pertama) dan filter data berdasarkan tanggal deadline
-    const now = moment();
+    const now = moment().startOf('day'); // Mulai dari awal hari ini
     const upcomingDeadlines = rows.slice(1) // Mengabaikan header
         .map(row => {
             const code = row[0];
@@ -62,8 +62,8 @@ async function getUpcomingDeadlines(sheetName) {
             const title = row[4];
             const status = row[9];
 
-            // Hanya ambil yang deadline-nya lebih dari sekarang
-            if (deadline.isAfter(now)) {
+            // Hanya ambil yang deadline-nya lebih dari atau sama dengan sekarang
+            if (deadline.isSameOrAfter(now)) {
                 return { code, title, deadline, format, type, status };
             }
 
@@ -75,6 +75,7 @@ async function getUpcomingDeadlines(sheetName) {
     // Ambil 5 jadwal terdekat
     return upcomingDeadlines.slice(0, 5);
 }
+
 
 // Fungsi untuk mencari 5 jadwal terakhir berdasarkan deadline
 async function getLastDeadlines(sheetName) {
