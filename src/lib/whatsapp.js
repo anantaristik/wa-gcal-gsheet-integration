@@ -107,7 +107,7 @@ function formatReminderMessage(reminder) {
 🕓: ${reminder.time}  
 📆: ${moment(reminder.date).format('DD MMMM YYYY')}
 
-**${reminder.title}**  
+*${reminder.title}*
 ${detailsFormatted}
 `;
 }
