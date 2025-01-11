@@ -6,6 +6,7 @@ const { getUpcomingDeadlines, getSheetList, getLastDeadlines, getPostDetailByCod
 const moment = require('moment-timezone');
 const path = require('path');
 const schedule = require('node-schedule');
+const fetch = require('node-fetch');
 
 // Initiate
 const client = new Client({
@@ -446,31 +447,29 @@ ${detail.status || 'Tidak tersedia'}
     }
 
 
-    if (msg.body.startsWith('!cek ')) {
-        // Mengekstrak mention dari pesan
-        const mentions = await msg.getMentions();
-        if (mentions.length === 0) {
-            msg.reply('Silakan mention pengguna yang ingin dicek.');
-            return;
-        }
+    // Inside your existing message handling logic
+if (msg.body.startsWith('!cek ')) {
+    const mentions = await msg.getMentions();
+    if (mentions.length === 0) {
+        msg.reply('Silakan mention pengguna yang ingin dicek.');
+        return;
+    }
 
-        mentions.forEach(async contact => {
-            try {
-                // Mengambil informasi pengguna
-                const contactInfo = await client.getContactById(contact.id._serialized);
+    mentions.forEach(async contact => {
+        try {
+            const contactInfo = await client.getContactById(contact.id._serialized);
 
-                // Mengambil foto profil
-                const profilePicUrl = await contactInfo.getProfilePicUrl();
-                let profilePic;
+            // Get profile picture URL
+            const profilePicUrl = await contactInfo.getProfilePicUrl();
+            let profilePic;
 
-                if (profilePicUrl) {
-                    const response = await fetch(profilePicUrl);
-                    const buffer = await response.buffer();
-                    profilePic = new MessageMedia('image/jpeg', buffer.toString('base64'));
-                } else {
-                    profilePic = null;
-                }
-
+            if (profilePicUrl) {
+                // Fetch the image data and convert it to a base64 string
+                const response = await fetch(profilePicUrl);
+                const buffer = await response.buffer(); // This gets the binary data of the image
+                profilePic = new MessageMedia('image/jpeg', buffer.toString('base64')); // Convert buffer to base64
+                
+                // Send the image with the user information
                 const userInfo = `
 *USER INFORMATION*
 
@@ -487,21 +486,39 @@ ${detail.status || 'Tidak tersedia'}
 - *Is My Contact*: ${contactInfo.isMyContact ? 'Yes' : 'No'}
 - *Is User*: ${contactInfo.isUser ? 'Yes' : 'No'}
 - *Is WhatsApp Contact*: ${contactInfo.isWAContact ? 'Yes' : 'No'}
-`;
+                `;
 
-                if (profilePic) {
-                    // Kirim foto profil dengan caption informasi
-                    await msg.reply(profilePic, null, { caption: userInfo });
-                } else {
-                    // Kirim informasi jika tidak ada foto profil
-                    msg.reply(userInfo);
-                }
-            } catch (error) {
-                console.error('Error fetching contact info or profile picture:', error);
-                msg.reply('Gagal mengambil informasi pengguna. Silakan coba lagi.');
+                // Send the profile picture along with the user info
+                await msg.reply(profilePic, null, { caption: userInfo });
+            } else {
+                // If no profile picture exists
+                const userInfo = `
+*USER INFORMATION*
+
+- *ID*: ${contact.id._serialized}
+- *Name*: ${contactInfo.name || 'Unknown'}
+- *Short Name*: ${contactInfo.shortName || 'Unknown'}
+- *Push Name*: ${contactInfo.pushname || 'Unknown'}
+- *Number*: ${contactInfo.number}
+- *Is Blocked*: ${contactInfo.isBlocked ? 'Yes' : 'No'}
+- *Is Business*: ${contactInfo.isBusiness ? 'Yes' : 'No'}
+- *Is Enterprise*: ${contactInfo.isEnterprise ? 'Yes' : 'No'}
+- *Is Group*: ${contactInfo.isGroup ? 'Yes' : 'No'}
+- *Is Me*: ${contactInfo.isMe ? 'Yes' : 'No'}
+- *Is My Contact*: ${contactInfo.isMyContact ? 'Yes' : 'No'}
+- *Is User*: ${contactInfo.isUser ? 'Yes' : 'No'}
+- *Is WhatsApp Contact*: ${contactInfo.isWAContact ? 'Yes' : 'No'}
+                `;
+
+                // Send user info if no profile picture is available
+                await msg.reply(userInfo);
             }
-        });
-    }
+        } catch (error) {
+            console.error('Error fetching contact info or profile picture:', error);
+            msg.reply('Gagal mengambil informasi pengguna. Silakan coba lagi.');
+        }
+    });
+}
 
     if (msg.body.startsWith('!ingatkan')) {
         try {
