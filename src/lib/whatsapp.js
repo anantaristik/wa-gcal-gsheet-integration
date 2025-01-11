@@ -5,6 +5,7 @@ const { getUpcomingEvents, getEventDetails, getEventReminder, addEventToCalendar
 const { getUpcomingDeadlines, getSheetList, getLastDeadlines, getPostDetailByCode } = require('./googleSheets');
 const moment = require('moment-timezone');
 const path = require('path');
+const schedule = require('node-schedule');
 
 // Initiate
 const client = new Client({
@@ -57,6 +58,68 @@ async function sendSticker(chatId, stickerName) {
     }
 }
 
+async function parseReminderCommand(command) {
+    const lines = command.split('\n');
+    const match = lines[0].match(/!ingatkan (\d{1,2}:\d{2}) (hari ini|besok|lusa|\d{1,2}-\d{1,2}-\d{4})/);
+
+    if (!match) {
+        throw new Error('Format command salah. Gunakan: !ingatkan <waktu> <hari ini/besok/lusa/tanggal>');
+    }
+
+    const time = match[1];
+    const day = match[2];
+    let date;
+
+    if (day === 'hari ini') {
+        date = moment().format('YYYY-MM-DD');
+    } else if (day === 'besok') {
+        date = moment().add(1, 'days').format('YYYY-MM-DD');
+    } else if (day === 'lusa') {
+        date = moment().add(2, 'days').format('YYYY-MM-DD');
+    } else {
+        date = moment(day, 'DD-MM-YYYY').format('YYYY-MM-DD');
+    }
+
+    const title = lines[1] || 'Pengingat';
+    const details = lines[2]
+        ? lines[2].includes(',') // Jika ada koma, pisahkan menjadi daftar
+            ? lines[2].split(',').map(item => item.trim())
+            : [lines[2]] // Jika tidak ada koma, anggap satu deskripsi utuh
+        : [];
+
+    return {
+        time,
+        date,
+        title,
+        details
+    };
+}
+
+function formatReminderMessage(reminder) {
+    const detailsFormatted =
+        reminder.details.length > 1
+            ? reminder.details.map(detail => `- ${detail}`).join('\n') // Format daftar
+            : reminder.details[0] || ''; // Format deskripsi langsung
+
+    return `
+📅 PENGINGAT!!
+🕓: ${reminder.time}  
+📆: ${moment(reminder.date).format('DD MMMM YYYY')}
+
+**${reminder.title}**  
+${detailsFormatted}
+`;
+}
+
+function scheduleReminder(reminder, sendMessage) {
+    const reminderTime = moment(`${reminder.date} ${reminder.time}`, 'YYYY-MM-DD HH:mm').toDate();
+
+    schedule.scheduleJob(reminderTime, () => {
+        const message = formatReminderMessage(reminder);
+        sendMessage(message); // Ganti `sendMessage` dengan fungsi kirim ke grup/WhatsApp
+    });
+}
+
 // Fungsi untuk mengirim pesan tagall
 async function sendTagAllMessage(chat, allowedUserIds) {
     let text = '';
@@ -102,7 +165,7 @@ function showHelp(msg) {
 2. *!groupid*: Show the group ID.
 3. *!userid*: Show your user ID or the ID of mentioned participants.
 4. *!events [query]*: List upcoming events or search events by query.
-5. *!jadwalpost [sheet name]*: Show upcoming or last deadlines for a specific sheet.
+5. *!jadwalpost*: Show upcoming or last deadlines for a specific sheet.
 6. *!detail [sheet name] [code]*: Get detailed information about a specific post by code.
 
 For more information, feel free to ask!`;
@@ -192,9 +255,11 @@ client.on('message', async (msg) => {
 
     // Kirim Sticker
     const stickerCommands = {
+        ...Object.fromEntries(['!ceri', '!macherie', '!maceri'].map(cmd => [cmd, 'ceri'])),
         '!dea': 'dea',
         '!dimas': 'dimas',
-        '!ananta': 'ananta'
+        '!ananta': 'ananta',
+        '!nadrah':'nadrah',
     };
 
     if (stickerCommands[msg.body]) {
@@ -379,6 +444,83 @@ ${detail.status || 'Tidak tersedia'}
             await msg.reply('Terjadi kesalahan saat mengambil detail postingan.');
         }
     }
+
+
+    if (msg.body.startsWith('!cek ')) {
+        // Mengekstrak mention dari pesan
+        const mentions = await msg.getMentions();
+        if (mentions.length === 0) {
+            msg.reply('Silakan mention pengguna yang ingin dicek.');
+            return;
+        }
+
+        mentions.forEach(async contact => {
+            try {
+                // Mengambil informasi pengguna
+                const contactInfo = await client.getContactById(contact.id._serialized);
+
+                // Mengambil foto profil
+                const profilePicUrl = await contactInfo.getProfilePicUrl();
+                let profilePic;
+
+                if (profilePicUrl) {
+                    const response = await fetch(profilePicUrl);
+                    const buffer = await response.buffer();
+                    profilePic = new MessageMedia('image/jpeg', buffer.toString('base64'));
+                } else {
+                    profilePic = null;
+                }
+
+                const userInfo = `
+*USER INFORMATION*
+
+- *ID*: ${contact.id._serialized}
+- *Name*: ${contactInfo.name || 'Unknown'}
+- *Short Name*: ${contactInfo.shortName || 'Unknown'}
+- *Push Name*: ${contactInfo.pushname || 'Unknown'}
+- *Number*: ${contactInfo.number}
+- *Is Blocked*: ${contactInfo.isBlocked ? 'Yes' : 'No'}
+- *Is Business*: ${contactInfo.isBusiness ? 'Yes' : 'No'}
+- *Is Enterprise*: ${contactInfo.isEnterprise ? 'Yes' : 'No'}
+- *Is Group*: ${contactInfo.isGroup ? 'Yes' : 'No'}
+- *Is Me*: ${contactInfo.isMe ? 'Yes' : 'No'}
+- *Is My Contact*: ${contactInfo.isMyContact ? 'Yes' : 'No'}
+- *Is User*: ${contactInfo.isUser ? 'Yes' : 'No'}
+- *Is WhatsApp Contact*: ${contactInfo.isWAContact ? 'Yes' : 'No'}
+`;
+
+                if (profilePic) {
+                    // Kirim foto profil dengan caption informasi
+                    await msg.reply(profilePic, null, { caption: userInfo });
+                } else {
+                    // Kirim informasi jika tidak ada foto profil
+                    msg.reply(userInfo);
+                }
+            } catch (error) {
+                console.error('Error fetching contact info or profile picture:', error);
+                msg.reply('Gagal mengambil informasi pengguna. Silakan coba lagi.');
+            }
+        });
+    }
+
+    if (msg.body.startsWith('!ingatkan')) {
+        try {
+            const reminder = await parseReminderCommand(msg.body);
+            const chatId = msg.from;
+
+            // Jadwalkan pengingat menggunakan fungsi scheduleReminder
+            scheduleReminder(reminder, async (message) => {
+                await client.sendMessage(chatId, message);
+                console.log(`Reminder sent to ${chatId}: ${message}`);
+            });
+
+            msg.reply(`Pengingat berhasil dijadwalkan pada ${reminder.time} ${moment(reminder.date).format('DD MMMM YYYY')} dengan judul "${reminder.title}".`);
+        } catch (error) {
+            console.error('Error scheduling reminder:', error.message);
+            msg.reply('Format perintah salah. Gunakan:\n!ingatkan <waktu> <hari ini/besok/lusa/tanggal>\nJudul\nDeskripsi (opsional).');
+        }
+    }
+
 });
 
 client.initialize();
