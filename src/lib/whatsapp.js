@@ -7,7 +7,6 @@ const moment = require('moment-timezone');
 const path = require('path');
 const schedule = require('node-schedule');
 const fetch = require('node-fetch');
-const cron = require('node-cron');
 
 // Initiate
 const client = new Client({
@@ -251,12 +250,6 @@ function sendMorningMessage(bot) {
         bot.sendMessage(userId, `🌞 Selamat pagi! 🌟\n\n${randomQuote}`);
     });
 }
-
-// Jadwalkan pesan setiap jam 7 pagi
-cron.schedule('0 7 * * *', () => {
-    console.log("Mengirim ucapan selamat pagi...");
-    sendMorningMessage(bot);
-});
 
 // KODE INTI -------------------------------------------------------
 
@@ -626,16 +619,6 @@ if (msg.body.startsWith('!cek ')) {
         const quote = getRandomQuote();
         return quote;
     }
-
-
-    if (message === "!selamat pagi start") {
-        const response = handleStartCommand(isGroup, senderId);
-        return response;
-    } else if (message === "!selamat pagi stop") {
-        const response = handleStopCommand(isGroup, senderId);
-        return response;
-    }
-
 
 });
 
