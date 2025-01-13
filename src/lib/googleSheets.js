@@ -60,7 +60,7 @@ async function getUpcomingDeadlines(sheetName) {
             const deadline = moment(row[2], 'dddd, MMMM D, YYYY'); // Parsing tanggal deadline
             const type = row[3];
             const title = row[4];
-            const status = row[9];
+            const status = row[8];
 
             // Hanya ambil yang deadline-nya lebih dari atau sama dengan sekarang
             if (deadline.isSameOrAfter(now)) {
@@ -90,7 +90,7 @@ async function getLastDeadlines(sheetName) {
             const deadline = moment(row[2], 'dddd, MMMM D, YYYY'); // Parsing tanggal deadline
             const type = row[3];
             const title = row[4];
-            const status = row[9];
+            const status = row[8];
 
             // Hanya ambil yang deadline-nya sebelum sekarang
             if (deadline.isBefore(now)) {

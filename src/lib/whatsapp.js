@@ -12,11 +12,7 @@ const fetch = require('node-fetch');
 const client = new Client({
     authStrategy: new LocalAuth({ dataPath: './sessions' }),
     
-    puppeteer: {
-        headless: true,
-        args: ['--no-sandbox', '--disable-setuid-sandbox'],
-        executablePath: '/usr/bin/chromium-browser', // Path Chromium Anda
-    },
+
 });
 
 client.on('qr', (qr) => {
@@ -193,22 +189,33 @@ function getRandomQuote() {
 
 // Fungsi untuk mendapatkan daftar subscribers
 function getSubscribers() {
-    if (!fs.existsSync('./morning_subscribers.json')) {
-        fs.writeFileSync('./morning_subscribers.json', JSON.stringify({ groups: [], users: [] }, null, 2));
+    const filePath = './morning_subscriber.json';
+    if (!fs.existsSync(filePath)) {
+        fs.writeFileSync(filePath, JSON.stringify({ groups: [], users: [] }, null, 2));
     }
-    return JSON.parse(fs.readFileSync('./morning_subscribers.json'));
+    return JSON.parse(fs.readFileSync(filePath, 'utf-8'));
 }
 
 // Fungsi untuk menambahkan subscriber
 function addSubscriber(type, id) {
     const subscribers = getSubscribers();
-    if (type === 'group' && !subscribers.groups.includes(id)) {
+
+    if (type === 'group') {
+        if (subscribers.groups.includes(id)) {
+            return false; // Sudah terdaftar
+        }
         subscribers.groups.push(id);
-    } else if (type === 'user' && !subscribers.users.includes(id)) {
+    } else if (type === 'user') {
+        if (subscribers.users.includes(id)) {
+            return false; // Sudah terdaftar
+        }
         subscribers.users.push(id);
     }
-    fs.writeFileSync('./morning_subscribers.json', JSON.stringify(subscribers, null, 2));
+
+    fs.writeFileSync('./morning_subscriber.json', JSON.stringify(subscribers, null, 2));
+    return true; // Berhasil ditambahkan
 }
+
 
 // Fungsi untuk menghapus subscriber
 function removeSubscriber(type, id) {
@@ -218,49 +225,25 @@ function removeSubscriber(type, id) {
     } else if (type === 'user') {
         subscribers.users = subscribers.users.filter(userId => userId !== id);
     }
-    fs.writeFileSync('./morning_subscribers.json', JSON.stringify(subscribers, null, 2));
+    fs.writeFileSync('./morning_subscriber.json', JSON.stringify(subscribers, null, 2));
 }
 
-// Fungsi untuk menangani perintah `!selamat pagi start`
-function handleStartCommand(msg) {
-    const isGroup = msg.from.includes('@g.us');
-    if (isGroup) {
-        addSubscriber('group', msg.from);
-        return "Grup ini sudah terdaftar untuk dikirimkan ucapan selamat pagi setiap jam 7 pagi.";
-    } else {
-        addSubscriber('user', msg.from);
-        return "Kamu sudah terdaftar untuk dikirimkan ucapan selamat pagi setiap jam 7 pagi.";
-    }
-}
-
-// Fungsi untuk menangani perintah `!selamat pagi stop`
-function handleStopCommand(msg) {
-    const isGroup = msg.from.includes('@g.us');
-    if (isGroup) {
-        removeSubscriber('group', msg.from);
-        return "Grup ini telah dihapus dari daftar untuk menerima ucapan selamat pagi.";
-    } else {
-        removeSubscriber('user', msg.from);
-        return "Kamu telah dihapus dari daftar untuk menerima ucapan selamat pagi.";
-    }
-}
-
-// Fungsi untuk mengirim pesan selamat pagi
-function sendMorningMessage(bot) {
+schedule.scheduleJob('0 7 * * *', () => {
     const subscribers = getSubscribers();
     const quotes = JSON.parse(fs.readFileSync('./quotes.json', 'utf-8'));
     const randomQuote = quotes[Math.floor(Math.random() * quotes.length)];
 
     // Kirim ke grup
     subscribers.groups.forEach(groupId => {
-        bot.sendMessage(groupId, `🌞 Selamat pagi! 🌟\n\n${randomQuote}`);
+        client.sendMessage(groupId, `🌞 Good morning! 🌟\n\n${randomQuote}`);
     });
 
     // Kirim ke pengguna
     subscribers.users.forEach(userId => {
-        bot.sendMessage(userId, `🌞 Selamat pagi! 🌟\n\n${randomQuote}`);
+        client.sendMessage(userId, `🌞 Good morning! 🌟\n\n${randomQuote}`);
     });
-}
+    console.log('Morning messages sent to all subscribers.');
+});
 
 // KODE INTI -------------------------------------------------------
 
@@ -629,10 +612,39 @@ if (msg.body.startsWith('!cek ')) {
     if (msg.body.startsWith('!kata kata hari ini')) {
         try {
             const quote = getRandomQuote();
-            msg.reply(`*Kata-Kata Hari Ini:*\n\n"${quote}"`);
+            msg.reply(`${quote}`);
         } catch (error) {
             console.error('Error fetching quote:', error.message);
-            msg.reply('Maaf, tidak dapat mengambil kata-kata hari ini. Pastikan file quotes.json tersedia.');
+            msg.reply('Maaf, tidak dapat mengambil kata-kata hari ini.');
+        }
+    }
+
+    if (msg.body.toLowerCase() === '!quote start') {
+        const isGroup = msg.from.includes('@g.us');
+        const result = isGroup
+            ? addSubscriber('group', msg.from)
+            : addSubscriber('user', msg.from);
+    
+        if (!result) {
+            msg.reply('You are already registered to receive morning quotes!');
+        } else {
+            if (isGroup) {
+                msg.reply('Group has been registered to receive morning quotes at 7 AM.');
+            } else {
+                msg.reply('You have been registered to receive morning quotes at 7 AM.');
+            }
+        }
+    }
+    
+    
+    if (msg.body.toLowerCase() === '!quote stop') {
+        const isGroup = msg.from.includes('@g.us');
+        if (isGroup) {
+            removeSubscriber('group', msg.from);
+            msg.reply('Group has been unregistered from receiving morning quotes.');
+        } else {
+            removeSubscriber('user', msg.from);
+            msg.reply('You have been unregistered from receiving morning quotes.');
         }
     }
 
