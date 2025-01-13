@@ -175,7 +175,7 @@ For more information, feel free to ask!`;
 }
 
 function getRandomQuote() {
-    const quotes = JSON.parse(fs.readFileSync('./quotes.json', 'utf-8'));
+    const quotes = JSON.parse(fs.readFileSync('quotes.json', 'utf-8'));
     const randomIndex = Math.floor(Math.random() * quotes.length);
     return quotes[randomIndex];
 }
@@ -615,7 +615,7 @@ if (msg.body.startsWith('!cek ')) {
         }
     }
 
-    if (message === "!kata kata hari ini") {
+    if (msg.body.startsWith('!kata kata hari ini')) {
         const quote = getRandomQuote();
         return quote;
     }
