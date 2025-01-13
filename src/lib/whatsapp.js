@@ -12,7 +12,11 @@ const fetch = require('node-fetch');
 const client = new Client({
     authStrategy: new LocalAuth({ dataPath: './sessions' }),
     
-
+    puppeteer: {
+        headless: true,
+        args: ['--no-sandbox', '--disable-setuid-sandbox'],
+        executablePath: '/usr/bin/chromium-browser', // Path Chromium Anda
+    },
 });
 
 client.on('qr', (qr) => {
