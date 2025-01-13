@@ -24,7 +24,7 @@ client.on('qr', (qr) => {
     qrcode.generate(qr, { small: true });
 });
 
-// Path for sentReminders
+// Path for file
 const remindersFilePath = path.join(__dirname, 'sentReminders.json');
 
 // Read last reminders
@@ -175,7 +175,18 @@ For more information, feel free to ask!`;
 }
 
 function getRandomQuote() {
-    const quotes = JSON.parse(fs.readFileSync('quotes.json', 'utf-8'));
+    // Menggunakan path absolut untuk memastikan lokasi file benar
+    const quotesFilePath = path.join(__dirname, 'quotes.json');
+
+    // Pastikan file quotes.json ada sebelum membacanya
+    if (!fs.existsSync(quotesFilePath)) {
+        throw new Error(`File "quotes.json" tidak ditemukan di path: ${quotesFilePath}`);
+    }
+
+    // Membaca dan mem-parsing file
+    const quotes = JSON.parse(fs.readFileSync(quotesFilePath, 'utf-8'));
+
+    // Mengambil quote secara acak
     const randomIndex = Math.floor(Math.random() * quotes.length);
     return quotes[randomIndex];
 }
@@ -616,8 +627,13 @@ if (msg.body.startsWith('!cek ')) {
     }
 
     if (msg.body.startsWith('!kata kata hari ini')) {
-        const quote = getRandomQuote();
-        return quote;
+        try {
+            const quote = getRandomQuote();
+            msg.reply(`*Kata-Kata Hari Ini:*\n\n"${quote}"`);
+        } catch (error) {
+            console.error('Error fetching quote:', error.message);
+            msg.reply('Maaf, tidak dapat mengambil kata-kata hari ini. Pastikan file quotes.json tersedia.');
+        }
     }
 
 });
