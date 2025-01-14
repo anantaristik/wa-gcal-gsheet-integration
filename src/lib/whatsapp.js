@@ -234,7 +234,7 @@ function removeSubscriber(type, id) {
 
 schedule.scheduleJob('0 7 * * *', () => {
     const subscribers = getSubscribers();
-    const quotes = JSON.parse(fs.readFileSync('./quotes.json', 'utf-8'));
+    const quotes = JSON.parse(path.join(__dirname, 'quotes.json'));
     const randomQuote = quotes[Math.floor(Math.random() * quotes.length)];
 
     // Kirim ke grup
