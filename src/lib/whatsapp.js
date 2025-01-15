@@ -193,7 +193,7 @@ function getRandomQuote() {
 
 // Fungsi untuk mendapatkan daftar subscribers
 function getSubscribers() {
-    const filePath = './morning_subscriber.json';
+    const filePath = path.join(__dirname, 'morning_subscriber.json');
     if (!fs.existsSync(filePath)) {
         fs.writeFileSync(filePath, JSON.stringify({ groups: [], users: [] }, null, 2));
     }
@@ -203,6 +203,7 @@ function getSubscribers() {
 // Fungsi untuk menambahkan subscriber
 function addSubscriber(type, id) {
     const subscribers = getSubscribers();
+    const filePath = path.join(__dirname, 'morning_subscriber.json');
 
     if (type === 'group') {
         if (subscribers.groups.includes(id)) {
@@ -216,7 +217,7 @@ function addSubscriber(type, id) {
         subscribers.users.push(id);
     }
 
-    fs.writeFileSync('./morning_subscriber.json', JSON.stringify(subscribers, null, 2));
+    fs.writeFileSync(filePath, JSON.stringify(subscribers, null, 2));
     return true; // Berhasil ditambahkan
 }
 
@@ -232,9 +233,14 @@ function removeSubscriber(type, id) {
     fs.writeFileSync('./morning_subscriber.json', JSON.stringify(subscribers, null, 2));
 }
 
-schedule.scheduleJob('0 7 * * *', () => {
+schedule.scheduleJob('0 9 * * *', () => {
     const subscribers = getSubscribers();
-    const quotes = JSON.parse(path.join(__dirname, 'quotes.json'));
+
+    // Membaca file quotes.json
+    const quotesFilePath = path.join(__dirname, 'quotes.json');
+    const quotes = JSON.parse(fs.readFileSync(quotesFilePath, 'utf-8'));
+
+    // Memilih quote acak
     const randomQuote = quotes[Math.floor(Math.random() * quotes.length)];
 
     // Kirim ke grup
@@ -246,6 +252,7 @@ schedule.scheduleJob('0 7 * * *', () => {
     subscribers.users.forEach(userId => {
         client.sendMessage(userId, `🌞 Good morning! 🌟\n\n${randomQuote}`);
     });
+
     console.log('Morning messages sent to all subscribers.');
 });
 
