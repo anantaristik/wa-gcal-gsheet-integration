@@ -233,7 +233,7 @@ function removeSubscriber(type, id) {
     fs.writeFileSync('./morning_subscriber.json', JSON.stringify(subscribers, null, 2));
 }
 
-schedule.scheduleJob('0 9 * * *', () => {
+schedule.scheduleJob('0 7 * * *', () => {
     const subscribers = getSubscribers();
 
     // Membaca file quotes.json
@@ -480,7 +480,7 @@ Status: ${event.status || 'Belum Ditentukan'}\n`;
     if (msg.body.startsWith('!detail ')) {
         const commandParts = msg.body.split(' ');
         const sheetName = commandParts[1]?.trim();
-        const code = commandParts[2]?.trim();
+        const code = commandParts[2]?.trim().toUpperCase();
 
         if (!sheetName || !code) {
             await msg.reply('Format perintah salah. Gunakan: !detail [sheet name] [code]');
@@ -507,6 +507,9 @@ ${detail.type || 'Tidak tersedia'}
 
 *Copy:*
 ${detail.copy || 'Tidak tersedia'}
+
+*Detail:*
+${detail.details || 'Tidak tersedia'}
 
 *Reference:*
 ${detail.reference || 'Tidak tersedia'}
