@@ -408,7 +408,26 @@ Berikut perintah yang tersedia untuk *Jadwal Posting*:
             console.error('Error fetching client list:', error);
             await msg.reply('Terjadi kesalahan saat mengambil daftar klien.');
         }
-    } else if (msg.body.toLowerCase().startsWith('!jadwalpost')) {
+    } else if (msg.body.toLowerCase() === '!jadwalpost update') {
+        try {
+            // URL Google Apps Script Web App
+            const scriptUrl = "https://script.google.com/macros/s/AKfycbwSZPiRzPLcTD4Gt7lidz8MlL-ayVSSHe465PBt4XDePIgWwOAlTdxJPacTWTpSxL1JYw/exec";
+            
+            // Panggil Google Apps Script
+            const response = await fetch(scriptUrl, { method: 'GET' });
+            const result = await response.json(); // Parsing response JSON
+            
+            if (result.status === "success") {
+                await msg.reply("✅ *Jadwal posting berhasil diperbarui!*");
+            } else {
+                await msg.reply("⚠️ *Gagal memperbarui jadwal posting.*\n" + result.message);
+            }
+        } catch (error) {
+            console.error("Error updating jadwal posting:", error);
+            await msg.reply("⚠️ *Terjadi kesalahan saat memperbarui jadwal posting.*\nSilakan coba lagi.");
+        }
+    }
+    else if (msg.body.toLowerCase().startsWith('!jadwalpost')) {
         // Menangani perintah untuk klien tertentu
         const commandParts = msg.body.split(' ');
         const sheetName = commandParts[1]?.toLowerCase();
